@@ -13,13 +13,23 @@
 
 @layer base {
   body {
-    @apply bg-[#f0f4f8] text-text-dark font-sans overflow-hidden text-base;
-    background-image: 
+    @apply bg-[#f0f4f8] text-text-dark font-sans text-base;
+    background-image:
       radial-gradient(at 0% 0%, #dbeafe 0, transparent 50%),
       radial-gradient(at 100% 0%, #e0e7ff 0, transparent 50%),
       radial-gradient(at 100% 100%, #fef3c7 0, transparent 50%);
-    height: 100vh;
-    width: 100vw;
+    background-attachment: fixed;
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  /* Desktop (md+) keeps the locked single-screen layout with internal scroll.
+     Below md the page scrolls naturally so all 3C devices can browse. */
+  @media (min-width: 768px) {
+    body {
+      @apply overflow-hidden;
+      height: 100vh;
+    }
   }
 }
 

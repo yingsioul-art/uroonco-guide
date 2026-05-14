@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Calendar, MessageSquare, ArrowRight, X, BrainCircuit, Info, ShieldAlert, Activity, AlertTriangle, Calculator, Thermometer, Droplets, CheckCircle2, HelpCircle, Lightbulb, Pencil, Star, Moon, Sun, Printer, HeartPulse, Volume2, ChevronDown, Sparkles, Stethoscope, Zap, XCircle, Clock, RefreshCw, BookOpen, ClipboardList } from 'lucide-react';
+import { Search, User, Calendar, MessageSquare, ArrowRight, X, BrainCircuit, Info, ShieldAlert, Activity, AlertTriangle, Calculator, Thermometer, Droplets, CheckCircle2, HelpCircle, Lightbulb, Pencil, Star, Moon, Sun, Printer, HeartPulse, Volume2, ChevronDown, Sparkles, Stethoscope, Zap, XCircle, Clock, RefreshCw, BookOpen, ClipboardList, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { drugs, Drug } from './data/drugs';
 import { regimens, Regimen } from './data/regimens';
@@ -414,6 +414,8 @@ export default function App() {
   const [selectedDrugId, setSelectedDrugId] = useState<string>(drugs[0].id);
   const [selectedRegimenId, setSelectedRegimenId] = useState<string | null>(null);
   const [sidebarMode, setSidebarMode] = useState<'drugs' | 'regimens'>('drugs');
+  // Mobile drawer state — sidebar slides in on small screens.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('全部');
@@ -534,14 +536,32 @@ export default function App() {
   }, [selectedDrug, selectedRegimenId]);
 
   return (
-    <div className="flex h-screen w-screen p-5 gap-5 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-80 glass-panel flex flex-col p-4 shrink-0 overflow-hidden">
-        <div className="flex items-center gap-2 mb-6 px-2 shrink-0">
+    <div className="flex flex-col md:flex-row md:h-screen w-full md:w-screen p-2 sm:p-3 md:p-5 gap-2 sm:gap-3 md:gap-5 md:overflow-hidden">
+      {/* Mobile sidebar overlay backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — drawer on mobile, fixed column on desktop */}
+      <aside
+        className={`glass-panel flex flex-col p-3 sm:p-4 md:shrink-0 fixed md:relative inset-y-0 left-0 z-40 md:z-auto w-72 sm:w-80 max-w-[85vw] transition-transform duration-300 md:overflow-hidden h-screen md:h-auto ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      >
+        <div className="flex items-center gap-2 mb-4 md:mb-6 px-2 shrink-0">
           <div className="p-1.5 bg-accent-blue/10 rounded-lg">
             <BrainCircuit className="text-accent-blue w-6 h-6" />
           </div>
-          <h2 className="font-bold text-xl text-accent-blue tracking-tight">UroOnco Guide</h2>
+          <h2 className="font-bold text-xl text-accent-blue tracking-tight flex-1">UroOnco Guide</h2>
+          {/* Close button visible only inside the mobile drawer */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 text-text-muted"
+            aria-label="關閉選單"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Sidebar Mode Toggle */}
@@ -618,121 +638,142 @@ export default function App() {
                   <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 px-2 flex items-center gap-1">
                     <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" /> 我的常用藥物
                   </h3>
-                  <div className="space-y-1">
-                    {drugs.filter(d => favorites.includes(d.id)).map(drug => (
-                      <div
-                        key={drug.id}
-                        onClick={() => {
-                          setSelectedDrugId(drug.id);
-                          setSelectedRegimenId(null);
-                          if (selectedDrugId === drug.id && !selectedRegimenId && mainContentRef.current) {
-                            mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                          }
-                        }}
-                        className={`drug-item flex items-center justify-between group ${selectedDrugId === drug.id && !selectedRegimenId ? 'active' : ''}`}
-                      >
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="w-7 h-7 rounded-full border-2 border-yellow-400/30 bg-yellow-50 flex items-center justify-center text-[10px] font-black text-yellow-600 transition-all shrink-0">
-                            <Star className="w-3 h-3 fill-yellow-400" />
-                          </div>
-                          <div className="flex flex-col overflow-hidden py-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xl font-black truncate max-w-[180px]">{drug.englishName}</span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  speak(drug.englishName);
-                                }}
-                                className="p-1 hover:bg-slate-200 rounded-full text-slate-400 group-hover:text-accent-blue transition-colors"
-                              >
-                                <Volume2 className="w-3 h-3" />
-                              </button>
+                  <div className="space-y-1.5">
+                    {drugs.filter(d => favorites.includes(d.id)).map(drug => {
+                      const isActive = selectedDrugId === drug.id && !selectedRegimenId;
+                      return (
+                        <div
+                          key={drug.id}
+                          onClick={() => {
+                            setSelectedDrugId(drug.id);
+                            setSelectedRegimenId(null);
+                            setIsSidebarOpen(false);
+                            if (selectedDrugId === drug.id && !selectedRegimenId && mainContentRef.current) {
+                              mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                            }
+                          }}
+                          className={`group cursor-pointer rounded-xl p-2.5 transition-all border ${
+                            isActive
+                              ? 'bg-accent-blue text-white shadow-lg border-accent-blue'
+                              : 'bg-white/60 border-transparent hover:bg-white hover:border-yellow-200 hover:shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                              isActive ? 'bg-white/20' : 'bg-yellow-50 border-2 border-yellow-400/30'
+                            }`}>
+                              <Star className={`w-3.5 h-3.5 ${isActive ? 'text-yellow-300 fill-yellow-300' : 'text-yellow-500 fill-yellow-400'}`} />
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className={`text-base font-bold truncate ${selectedDrugId === drug.id && !selectedRegimenId ? 'text-white/80' : 'text-text-muted'}`}>
-                                {drug.name}
-                              </span>
-                              {drug.brandName && (
-                                <div className="flex items-center gap-1">
-                                  <span className={`text-[10px] leading-none px-1.5 py-0.5 rounded font-black border ${selectedDrugId === drug.id && !selectedRegimenId ? 'bg-white/20 text-white border-white/30' : 'bg-slate-100 text-slate-600 border-slate-200 uppercase'}`}>
+                            <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-base sm:text-lg font-black truncate min-w-0 flex-1">{drug.englishName}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); speak(drug.englishName); }}
+                                  className={`p-1 rounded-full shrink-0 transition-colors ${isActive ? 'hover:bg-white/20 text-white/80' : 'hover:bg-slate-200 text-slate-400 group-hover:text-accent-blue'}`}
+                                  aria-label="發音英文藥名"
+                                >
+                                  <Volume2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                <span className={`text-sm font-bold truncate min-w-0 ${isActive ? 'text-white/85' : 'text-text-muted'}`}>
+                                  {drug.name}
+                                </span>
+                                {drug.brandName && (
+                                  <span className={`inline-flex items-center gap-1 text-[10px] leading-none px-1.5 py-0.5 rounded font-black border shrink-0 ${
+                                    isActive ? 'bg-white/20 text-white border-white/30' : 'bg-slate-100 text-slate-600 border-slate-200 uppercase'
+                                  }`}>
                                     {drug.brandName}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); speak(drug.brandName!); }}
+                                      className={`p-0.5 rounded transition-colors ${isActive ? 'hover:bg-white/20' : 'hover:bg-slate-200'}`}
+                                      aria-label="發音商品名"
+                                    >
+                                      <Volume2 className="w-2.5 h-2.5" />
+                                    </button>
                                   </span>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      speak(drug.brandName!);
-                                    }}
-                                    className={`p-1 rounded-full transition-colors ${selectedDrugId === drug.id && !selectedRegimenId ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-200 text-slate-300'}`}
-                                  >
-                                    <Volume2 className="w-2.5 h-2.5" />
-                                  </button>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2 px-2">全部藥物清單</h3>
-              <div className="space-y-1 pb-4">
-                {filteredDrugs.map((drug, idx) => (
-                  <div
-                    key={drug.id}
-                    onClick={() => {
-                      setSelectedDrugId(drug.id);
-                      setSelectedRegimenId(null);
-                      if (selectedDrugId === drug.id && !selectedRegimenId && mainContentRef.current) {
-                        mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
-                    className={`drug-item flex items-center justify-between group ${selectedDrugId === drug.id && !selectedRegimenId ? 'active' : ''}`}
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-7 h-7 rounded-full border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:border-accent-blue/30 transition-all shrink-0">
-                        {idx + 1}
-                      </div>
-                      <div className="flex flex-col overflow-hidden py-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="truncate text-xl font-black max-w-[170px]">{drug.englishName}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              speak(drug.englishName);
-                            }}
-                            className="p-1 hover:bg-slate-200 rounded-full text-slate-400 group-hover:text-accent-blue transition-colors"
-                          >
-                            <Volume2 className="w-3 h-3" />
-                          </button>
+              <div className="space-y-1.5 pb-4">
+                {filteredDrugs.map((drug, idx) => {
+                  const isActive = selectedDrugId === drug.id && !selectedRegimenId;
+                  // category accent strip (left edge)
+                  const accent = drug.category === '化學治療' ? 'bg-accent-blue'
+                    : drug.category === '免疫治療' ? 'bg-purple-500'
+                    : drug.category === '標靶治療' ? 'bg-emerald-500'
+                    : 'bg-slate-400';
+                  return (
+                    <div
+                      key={drug.id}
+                      onClick={() => {
+                        setSelectedDrugId(drug.id);
+                        setSelectedRegimenId(null);
+                        setIsSidebarOpen(false);
+                        if (selectedDrugId === drug.id && !selectedRegimenId && mainContentRef.current) {
+                          mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className={`group cursor-pointer rounded-xl p-2.5 transition-all border relative overflow-hidden ${
+                        isActive
+                          ? 'bg-accent-blue text-white shadow-lg border-accent-blue'
+                          : 'bg-white/60 border-transparent hover:bg-white hover:border-accent-blue/20 hover:shadow-sm'
+                      }`}
+                    >
+                      {/* Category color strip on the left */}
+                      {!isActive && <span className={`absolute left-0 top-2 bottom-2 w-1 rounded-r ${accent}`} aria-hidden="true" />}
+                      <div className="flex items-start gap-2.5 min-w-0 pl-1.5">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-50 border-2 border-slate-200 text-slate-500 group-hover:border-accent-blue/30 group-hover:text-accent-blue'
+                        }`}>
+                          {idx + 1}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`text-base font-bold truncate ${selectedDrugId === drug.id && !selectedRegimenId ? 'text-white/80' : 'text-text-muted'}`}>
-                            {drug.name}
-                          </span>
-                          {drug.brandName && (
-                            <div className="flex items-center gap-1">
-                              <span className={`text-[10px] leading-none px-1.5 py-0.5 rounded font-black border ${selectedDrugId === drug.id && !selectedRegimenId ? 'bg-white/20 text-white border-white/30' : 'bg-slate-100 text-slate-600 border-slate-200 uppercase'}`}>
+                        <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-base sm:text-lg font-black truncate min-w-0 flex-1">{drug.englishName}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); speak(drug.englishName); }}
+                              className={`p-1 rounded-full shrink-0 transition-colors ${isActive ? 'hover:bg-white/20 text-white/80' : 'hover:bg-slate-200 text-slate-400 group-hover:text-accent-blue'}`}
+                              aria-label="發音英文藥名"
+                            >
+                              <Volume2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                            <span className={`text-sm font-bold truncate min-w-0 ${isActive ? 'text-white/85' : 'text-text-muted'}`}>
+                              {drug.name}
+                            </span>
+                            {drug.brandName && (
+                              <span className={`inline-flex items-center gap-1 text-[10px] leading-none px-1.5 py-0.5 rounded font-black border shrink-0 ${
+                                isActive ? 'bg-white/20 text-white border-white/30' : 'bg-slate-100 text-slate-600 border-slate-200 uppercase'
+                              }`}>
                                 {drug.brandName}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); speak(drug.brandName!); }}
+                                  className={`p-0.5 rounded transition-colors ${isActive ? 'hover:bg-white/20' : 'hover:bg-slate-200'}`}
+                                  aria-label="發音商品名"
+                                >
+                                  <Volume2 className="w-2.5 h-2.5" />
+                                </button>
                               </span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  speak(drug.brandName!);
-                                }}
-                                className={`p-1 rounded-full transition-colors ${selectedDrugId === drug.id && !selectedRegimenId ? 'hover:bg-white/20 text-white/60' : 'hover:bg-slate-200 text-slate-300'}`}
-                              >
-                                <Volume2 className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>
@@ -751,6 +792,7 @@ export default function App() {
                     if (regimen.drugIds.length > 0) {
                       setSelectedDrugId(regimen.drugIds[0]);
                     }
+                    setIsSidebarOpen(false);
                     if (isAlreadySelected && combinationsRef.current) {
                       combinationsRef.current.scrollIntoView({ behavior: 'smooth' });
                     }
@@ -805,10 +847,22 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col gap-5 overflow-hidden">
-        <header className="h-[70px] glass-panel flex items-center justify-between px-6 shrink-0">
-          <h1 className="text-2xl font-black text-accent-blue">泌尿腫瘤抗癌藥品智慧學習系統</h1>
-          <div className="flex items-center gap-6 text-lg text-text-dark">
+      <main className="flex-1 flex flex-col gap-3 sm:gap-4 md:gap-5 md:overflow-hidden min-w-0">
+        <header className="glass-panel flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6 py-2.5 md:py-3 md:h-[70px] shrink-0 flex-wrap">
+          {/* Mobile hamburger to open sidebar */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="md:hidden p-2 rounded-lg hover:bg-accent-blue/10 text-accent-blue shrink-0"
+            aria-label="開啟藥物清單"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <h1 className="text-sm sm:text-base md:text-xl lg:text-2xl font-black text-accent-blue truncate min-w-0 flex-1">
+            <span className="hidden md:inline">泌尿腫瘤抗癌藥品智慧學習系統</span>
+            <span className="hidden sm:inline md:hidden">泌尿腫瘤學習系統</span>
+            <span className="sm:hidden">UroOnco</span>
+          </h1>
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-6 text-sm sm:text-base md:text-lg text-text-dark flex-wrap justify-end">
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-2 hover:bg-accent-blue/10 rounded-full transition-colors text-accent-blue"
@@ -840,7 +894,7 @@ export default function App() {
                   }}
                 >
                   <span className={`font-bold ${userName === '點擊設定姓名' ? 'text-accent-blue italic' : ''}`}>
-                    護理師：{userName}
+                    <span className="hidden sm:inline">護理師：</span>{userName}
                   </span>
                   <motion.div
                     animate={userName === '點擊設定姓名' ? { scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] } : {}}
@@ -875,72 +929,70 @@ export default function App() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <Calendar className="w-4 h-4 text-accent-blue" />
               <span>{currentDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).replace(/周|星期/, '')}</span>
             </div>
           </div>
         </header>
 
-        <div ref={mainContentRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <div ref={mainContentRef} className="flex-1 md:overflow-y-auto custom-scrollbar md:pr-2">
           <AnimatePresence mode="wait">
-            <motion.div 
+            <motion.div
               key={selectedDrug.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="flex flex-col gap-6 pb-10"
+              className="flex flex-col gap-4 sm:gap-5 md:gap-6 pb-6 md:pb-10"
             >
               {/* Drug Hero Card */}
-              <div className="glass-panel p-6 flex justify-between items-center relative overflow-hidden shrink-0">
+              <div className="glass-panel p-4 sm:p-5 md:p-6 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 relative overflow-hidden shrink-0">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-accent-blue/5 rounded-full -mr-24 -mt-24 blur-3xl" />
-                <div className="flex gap-6 items-center relative z-10">
-                  <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-xl ${
-                    selectedDrug.category === '化學治療' ? 'bg-accent-blue' : 
+                <div className="flex gap-3 sm:gap-4 md:gap-6 items-start sm:items-center relative z-10 min-w-0">
+                  <div className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-xl shrink-0 ${
+                    selectedDrug.category === '化學治療' ? 'bg-accent-blue' :
                     selectedDrug.category === '免疫治療' ? 'bg-purple-500' :
                     selectedDrug.category === '標靶治療' ? 'bg-accent-green' : 'bg-slate-500'
                   }`}>
-                    <Activity className="w-10 h-10" />
+                    <Activity className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="px-3 py-1 rounded-md bg-accent-blue/10 text-accent-blue text-xs font-black uppercase tracking-widest">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-md bg-accent-blue/10 text-accent-blue text-[10px] sm:text-xs font-black uppercase tracking-widest">
                         {selectedDrug.category} • {selectedDrug.subCategory}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-5xl font-black tracking-tight">{selectedDrug.englishName}</h2>
-                        <button 
+                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight break-words">{selectedDrug.englishName}</h2>
+                        <button
                           onClick={() => speak(selectedDrug.englishName)}
-                          className="p-2 bg-accent-blue/10 hover:bg-accent-blue/20 rounded-full text-accent-blue transition-all"
+                          className="p-1.5 sm:p-2 bg-accent-blue/10 hover:bg-accent-blue/20 rounded-full text-accent-blue transition-all shrink-0"
                           title="發音藥名"
                         >
-                          <Volume2 className="w-5 h-5" />
+                          <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                       {selectedDrug.brandName && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 bg-accent-blue/5 px-3 py-1 rounded-xl border border-accent-blue/10">
-                            <span className="text-xl font-black text-accent-blue">
-                              {selectedDrug.brandName}
-                            </span>
-                            <button 
-                              onClick={() => speak(selectedDrug.brandName!)}
-                              className="p-1.5 hover:bg-accent-blue/20 rounded-full text-accent-blue transition-all"
-                              title="發音商品名"
-                            >
-                              <Volume2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-2 bg-accent-blue/5 px-2.5 py-1 sm:px-3 rounded-xl border border-accent-blue/10">
+                          <span className="text-base sm:text-lg md:text-xl font-black text-accent-blue">
+                            {selectedDrug.brandName}
+                          </span>
+                          <button
+                            onClick={() => speak(selectedDrug.brandName!)}
+                            className="p-1 sm:p-1.5 hover:bg-accent-blue/20 rounded-full text-accent-blue transition-all shrink-0"
+                            title="發音商品名"
+                          >
+                            <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </button>
                         </div>
                       )}
                     </div>
-                    <p className="text-text-muted text-xl font-bold">({selectedDrug.name})</p>
+                    <p className="text-text-muted text-base sm:text-lg md:text-xl font-bold mt-0.5">({selectedDrug.name})</p>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-3 relative z-10">
+                <div className="flex flex-row lg:flex-col items-start lg:items-end gap-2 sm:gap-3 relative z-10 flex-wrap">
                   <button 
                     onClick={() => {
                       setQuizDrugId(selectedDrug.id);
@@ -968,7 +1020,7 @@ export default function App() {
               </div>
 
               {/* 1. 藥物介紹 */}
-              <section className="glass-panel p-8 scroll-mt-20">
+              <section className="glass-panel p-4 sm:p-6 md:p-8 scroll-mt-20">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-accent-blue/10 rounded-xl">
                     <Info className="w-6 h-6 text-accent-blue" />
@@ -1027,7 +1079,7 @@ export default function App() {
               {/* 2. 給藥資訊 & 3. 給藥前確認 (Grid) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 2. 給藥資訊 */}
-                <section className="glass-panel p-8">
+                <section className="glass-panel p-4 sm:p-6 md:p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-emerald-100 rounded-xl">
                       <Droplets className="w-6 h-6 text-emerald-600" />
@@ -1095,7 +1147,7 @@ export default function App() {
                 </section>
 
                 {/* 3. 給藥前確認 */}
-                <section className="glass-panel p-8 border-l-4 border-amber-400">
+                <section className="glass-panel p-4 sm:p-6 md:p-8 border-l-4 border-amber-400">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-amber-100 rounded-xl">
                       <CheckCircle2 className="w-6 h-6 text-amber-600" />
@@ -1257,7 +1309,7 @@ export default function App() {
               </div>
 
               {/* 4. 化療藥品外滲處置建議 (Extravasation Management) - Standing out as a full-width rectangle */}
-              <section className="glass-panel p-8 border-2 border-orange-200 bg-orange-50 shadow-xl overflow-hidden relative">
+              <section className="glass-panel p-4 sm:p-6 md:p-8 border-2 border-orange-200 bg-orange-50 shadow-xl overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-orange-200/20 rounded-full -mr-32 -mt-32 blur-3xl" />
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
                   <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0 shadow-sm border border-orange-200">
@@ -1316,7 +1368,7 @@ export default function App() {
               </section>
 
               {/* 5. 副作用評估 (雙視角) */}
-              <section className="glass-panel p-8 border-t-8 border-accent-blue/10">
+              <section className="glass-panel p-4 sm:p-6 md:p-8 border-t-8 border-accent-blue/10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-accent-blue/10 rounded-xl">
@@ -1404,7 +1456,7 @@ export default function App() {
 
               {/* 6. 劑量調整與交互作用 (Dosage & Interactions) */}
               {(selectedDrug.dosageAdjustment || selectedDrug.interactions) && (
-                <section className="glass-panel p-8">
+                <section className="glass-panel p-4 sm:p-6 md:p-8">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-slate-100 rounded-xl">
                       <Calculator className="w-6 h-6 text-slate-600" />
@@ -1446,7 +1498,7 @@ export default function App() {
 
               {/* 5. 臨床照護重點 (Clinical Nursing Points) - If present */}
               {selectedDrug.clinicalPearls && selectedDrug.clinicalPearls.length > 0 && (
-                <section className="glass-panel p-8 bg-purple-50/10 border-l-8 border-purple-400">
+                <section className="glass-panel p-4 sm:p-6 md:p-8 bg-purple-50/10 border-l-8 border-purple-400">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-purple-100 rounded-xl">
                       <Lightbulb className="w-6 h-6 text-purple-600" />
@@ -1481,7 +1533,7 @@ export default function App() {
                 if (relevantRegimens.length === 0) return null;
 
                 return (
-                  <section ref={combinationsRef} className="glass-panel p-8 border-l-8 border-purple-500 bg-purple-50/10 scroll-mt-10">
+                  <section ref={combinationsRef} className="glass-panel p-4 sm:p-6 md:p-8 border-l-8 border-purple-500 bg-purple-50/10 scroll-mt-10">
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-100 rounded-xl">
