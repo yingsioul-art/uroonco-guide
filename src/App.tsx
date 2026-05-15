@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { drugs, Drug } from './data/drugs';
 import { regimens, Regimen } from './data/regimens';
 import InteractionChecker from './components/InteractionChecker';
+import MechanismRewriter from './components/MechanismRewriter';
 
 
 import { ExtravasationGuide } from './components/ExtravasationGuide';
@@ -421,6 +422,7 @@ export default function App() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('全部');
   const [isToolboxOpen, setIsToolboxOpen] = useState(false);
   const [isInteractionCheckerOpen, setIsInteractionCheckerOpen] = useState(false);
+  const [isMechanismRewriterOpen, setIsMechanismRewriterOpen] = useState(false);
   const [isRandomQuizOpen, setIsRandomQuizOpen] = useState(false);
   const [quizDrugId, setQuizDrugId] = useState<string | null>(null);
   const [showExtravasationNotes, setShowExtravasationNotes] = useState(false);
@@ -1029,9 +1031,18 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <h4 className="text-lg font-black text-accent-blue flex items-center gap-2">
-                      <BrainCircuit className="w-5 h-5" /> 作用機轉 (Mechanism)
-                    </h4>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="text-lg font-black text-accent-blue flex items-center gap-2">
+                        <BrainCircuit className="w-5 h-5" /> 作用機轉 (Mechanism)
+                      </h4>
+                      <button
+                        onClick={() => setIsMechanismRewriterOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-xs font-black hover:shadow-md hover:from-purple-700 hover:to-indigo-700 transition-all"
+                        title="用 AI 將機轉改寫為護理衛教文稿"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> AI 衛教改寫
+                      </button>
+                    </div>
                     <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 space-y-4">
                       <p className="text-lg leading-relaxed text-text-dark font-medium">
                         {selectedDrug.mechanism}
@@ -1719,6 +1730,16 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* AI Mechanism Rewriter Modal */}
+      {isMechanismRewriterOpen && (
+        <MechanismRewriter
+          drugEnglishName={selectedDrug.englishName}
+          drugChineseName={selectedDrug.name}
+          mechanism={selectedDrug.mechanism}
+          onClose={() => setIsMechanismRewriterOpen(false)}
+        />
+      )}
     </div>
   );
 }
